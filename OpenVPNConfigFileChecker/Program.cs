@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Text.RegularExpressions;
 using System.Diagnostics;
 
 namespace OpenVPNConfigFileChecker
@@ -18,7 +17,7 @@ namespace OpenVPNConfigFileChecker
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine("Successful Pings: ");
+            Console.WriteLine("Successful connection attempts: ");
             foreach (string path in args)
             {
                 if (File.Exists(path))
@@ -57,38 +56,32 @@ namespace OpenVPNConfigFileChecker
         // Insert logic for processing found files here.
         public static void ProcessFile(string path)
         {
-            Regex ipRegex = new Regex(@"((2[0-4]\d|25[0-5]|[01]?\d\d?)\.){3}(2[0-4]\d|25[0-5]|[01]?\d\d?)");
-            // Only check OpenVPN config files that contain an IP address in the file name
-            if (Path.GetExtension(path) == ".ovpn" && ipRegex.Match(path).Success)
+            // Only check OpenVPN config files
+            if (Path.GetExtension(path) == ".ovpn")
             {
-                string ipAddress = ipRegex.Match(path).Value;
-
-                // Start the ping process and output files names where reply recieved
+                // Start the openvpn process and output files names where connection was successful
                 System.Diagnostics.Process p = new System.Diagnostics.Process();
 
-                p.StartInfo.FileName = "ping.exe";
-                p.StartInfo.Arguments = ipAddress;
+                p.StartInfo.FileName = "openvpn.exe";
+                p.StartInfo.Arguments = path;
 
                 p.StartInfo.UseShellExecute = false;
                 p.StartInfo.RedirectStandardOutput = true;
 
                 p.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
                 {
-                    //Console.WriteLine("received output: {0}", e.Data);
-                    if (e.Data == "Request timed out.")
-                    {
-                        p.Kill();
-                    }
-                    else if (e.Data != null && e.Data.StartsWith("Reply from"))
+                    if (e.Data != null && e.Data.Contains("VERIFY OK: depth=0,"))
                     {
                         Console.WriteLine(path);
-                        p.Kill();
                     }
                 });
 
                 p.Start();
                 p.BeginOutputReadLine();
-                p.WaitForExit();
+
+                // Kill after 1.3s
+                System.Threading.Thread.Sleep(1300);
+                p.Kill();
 
             }
         }
