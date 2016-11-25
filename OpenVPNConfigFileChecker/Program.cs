@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace OpenVPNConfigFileChecker
 {
@@ -17,6 +18,7 @@ namespace OpenVPNConfigFileChecker
     {
         public static void Main(string[] args)
         {
+            Console.WriteLine("Successful Pings: ");
             foreach (string path in args)
             {
                 if (File.Exists(path))
@@ -60,8 +62,34 @@ namespace OpenVPNConfigFileChecker
             if (Path.GetExtension(path) == ".ovpn" && ipRegex.Match(path).Success)
             {
                 string ipAddress = ipRegex.Match(path).Value;
-                Console.WriteLine(ipAddress);
-                //Console.WriteLine("Processed file '{0}'.", path);
+
+                // Start the ping process and output files names where reply recieved
+                System.Diagnostics.Process p = new System.Diagnostics.Process();
+
+                p.StartInfo.FileName = "ping.exe";
+                p.StartInfo.Arguments = ipAddress;
+
+                p.StartInfo.UseShellExecute = false;
+                p.StartInfo.RedirectStandardOutput = true;
+
+                p.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
+                {
+                    //Console.WriteLine("received output: {0}", e.Data);
+                    if (e.Data == "Request timed out.")
+                    {
+                        p.Kill();
+                    }
+                    else if (e.Data != null && e.Data.StartsWith("Reply from"))
+                    {
+                        Console.WriteLine(path);
+                        p.Kill();
+                    }
+                });
+
+                p.Start();
+                p.BeginOutputReadLine();
+                p.WaitForExit();
+
             }
         }
     }
