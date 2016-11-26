@@ -76,13 +76,19 @@ namespace OpenVPNConfigFileChecker
                     }
                 });
 
-                p.Start();
-                p.BeginOutputReadLine();
+                try
+                {
+                    p.Start();
+                    p.BeginOutputReadLine();
 
-                // Kill after 1.3s
-                System.Threading.Thread.Sleep(1300);
-                p.Kill();
-
+                    // Kill after 1.3s
+                    System.Threading.Thread.Sleep(1300);
+                    p.Kill();
+                }
+                catch (Exception)
+                {
+                    throw new Exception("OpenVPN not installed or not in PATH environment variable.");
+                }  
             }
         }
     }
